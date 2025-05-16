@@ -11,12 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class SpringApplication {
 
 	public static void main(String[] args) {
-		Dotenv dotenv = Dotenv.load();
 
-		dotenv.entries().forEach(entry -> {
-			// Set each entry as a system property
-			System.setProperty(entry.getKey(), entry.getValue());
-		});
 		org.springframework.boot.SpringApplication.run(SpringApplication.class, args);
 	}
 
