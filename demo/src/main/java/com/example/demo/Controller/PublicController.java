@@ -152,4 +152,10 @@ public class PublicController {
         }
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<?> health() {
+        return ResponseEntity.ok("OK");
+    }
+
+
 }

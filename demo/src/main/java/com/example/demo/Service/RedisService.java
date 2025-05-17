@@ -40,6 +40,7 @@ public class RedisService {
         redisTemplate.opsForValue().set(key,data,Duration.ofMinutes(ttl));
     }
 
+
     public <T> T getVenues(String key,Class<T> clazz){
         Object value = redisTemplate.opsForValue().get(key);
         if(value == null)return null;
