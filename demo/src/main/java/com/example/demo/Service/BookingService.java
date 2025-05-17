@@ -19,6 +19,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -62,6 +63,7 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
+    @Transactional
     public ResponseEntity<?> bookSeat(Booking booking, ObjectId eventId, List<SeatStatus> seatStatuses) {
         Event event = eventService.getEventById(eventId);
         Venues venue = event.getVenueId();

@@ -7,6 +7,7 @@ import com.example.demo.Enums.SeatType;
 import com.example.demo.Models.Seat;
 import com.example.demo.Models.User;
 import com.example.demo.Models.Venues;
+import com.example.demo.Service.RedisService;
 import com.example.demo.Service.SeatService;
 import com.example.demo.Service.UserService;
 import com.example.demo.Service.VenueService;
@@ -20,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,7 +46,11 @@ public class VenueController {
     @Autowired
     private Cloudinary cloudinary;
 
+    @Autowired
+    private RedisService redisService;
+
     //Creating a Venue
+    @Transactional
     @PostMapping(
             value = "/Organizer/createVenue",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -166,7 +172,7 @@ public class VenueController {
             }
 
             seatService.deleteByVenueId(venueId);
-
+            redisService.deleteKey("allEvents");
             venueService.deleteVenueById(venueId);
 
             return new ResponseEntity<>("Venue and associated seats deleted successfully.",HttpStatus.OK);
