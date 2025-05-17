@@ -61,4 +61,8 @@ public class EventService {
             throw new RuntimeException(e);
         }
     }
+
+    public void deleteByVenueId(ObjectId venueId) {
+        eventsRepository.deleteByvenueId(venueId);
+    }
 }

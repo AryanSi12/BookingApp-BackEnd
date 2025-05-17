@@ -7,10 +7,7 @@ import com.example.demo.Enums.SeatType;
 import com.example.demo.Models.Seat;
 import com.example.demo.Models.User;
 import com.example.demo.Models.Venues;
-import com.example.demo.Service.RedisService;
-import com.example.demo.Service.SeatService;
-import com.example.demo.Service.UserService;
-import com.example.demo.Service.VenueService;
+import com.example.demo.Service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -48,6 +45,9 @@ public class VenueController {
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private EventService eventService;
 
     //Creating a Venue
     @Transactional
@@ -172,7 +172,9 @@ public class VenueController {
             }
 
             seatService.deleteByVenueId(venueId);
+
             redisService.deleteKey("allEvents");
+            eventService.deleteByVenueId(venueId);
             venueService.deleteVenueById(venueId);
 
             return new ResponseEntity<>("Venue and associated seats deleted successfully.",HttpStatus.OK);

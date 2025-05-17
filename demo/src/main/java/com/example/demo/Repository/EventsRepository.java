@@ -17,4 +17,6 @@ public interface EventsRepository extends MongoRepository<Event, ObjectId> {
     List<Event> findByendTimeBefore(LocalDateTime now);
 
     List<Event> findAllByorganizerId(ObjectId userId);
+
+    void deleteByvenueId(ObjectId venueId);
 }
