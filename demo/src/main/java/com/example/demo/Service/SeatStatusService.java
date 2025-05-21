@@ -11,6 +11,8 @@ import java.util.List;
 @Service
 public class SeatStatusService {
 
+    private RedisService redisService;
+
     @Autowired
     private SeatStatusRepository seatStatusRepository;
     public void saveSeatsWithStatus(List<SeatStatus> seatStatusList) {
@@ -27,6 +29,10 @@ public class SeatStatusService {
     }
 
     public List<SeatStatus> getSeatStatusByEventId(ObjectId eventId) {
-        return seatStatusRepository.findByeventId(eventId);
+        List<SeatStatus> seats = redisService.getSeats("allSeats"+eventId, List.class);
+        if(seats!=null)return seats;
+        seats = seatStatusRepository.findByeventId(eventId);
+        redisService.setSeats("allSeats"+eventId,seats,10);
+        return seats;
     }
 }

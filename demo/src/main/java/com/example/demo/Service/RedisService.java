@@ -40,6 +40,15 @@ public class RedisService {
         redisTemplate.opsForValue().set(key,data,Duration.ofMinutes(ttl));
     }
 
+    public <T> T getSeats(String key,Class<T> clazz){
+        Object value = redisTemplate.opsForValue().get(key);
+        if(value == null)return null;
+        return objectMapper.convertValue(value,clazz);
+    }
+
+    public <T> void setSeats(String key,T data,long ttl){
+        redisTemplate.opsForValue().set(key,data,Duration.ofMinutes(ttl));
+    }
 
     public <T> T getVenues(String key,Class<T> clazz){
         Object value = redisTemplate.opsForValue().get(key);
