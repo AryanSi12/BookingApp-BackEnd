@@ -33,6 +33,7 @@ public class SeatStatusController {
             return new ResponseEntity<>(dtoList, HttpStatus.OK);
         }
         catch (Exception e) {
+            e.printStackTrace();
             return new ResponseEntity<>("Unable to fetch the status of the seats ",HttpStatus.BAD_REQUEST);
         }
     }

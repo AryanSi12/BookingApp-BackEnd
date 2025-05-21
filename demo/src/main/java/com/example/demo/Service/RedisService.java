@@ -1,5 +1,6 @@
 package com.example.demo.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.bson.types.ObjectId;
@@ -40,11 +41,12 @@ public class RedisService {
         redisTemplate.opsForValue().set(key,data,Duration.ofMinutes(ttl));
     }
 
-    public <T> T getSeats(String key,Class<T> clazz){
+    public <T> T getSeats(String key, TypeReference<T> typeRef) {
         Object value = redisTemplate.opsForValue().get(key);
-        if(value == null)return null;
-        return objectMapper.convertValue(value,clazz);
+        if (value == null) return null;
+        return objectMapper.convertValue(value, typeRef);
     }
+
 
     public <T> void setSeats(String key,T data,long ttl){
         redisTemplate.opsForValue().set(key,data,Duration.ofMinutes(ttl));
