@@ -10,7 +10,7 @@ import java.util.List;
 
 @Service
 public class SeatStatusService {
-
+    @Autowired
     private RedisService redisService;
 
     @Autowired
@@ -29,10 +29,17 @@ public class SeatStatusService {
     }
 
     public List<SeatStatus> getSeatStatusByEventId(ObjectId eventId) {
-        List<SeatStatus> seats = redisService.getSeats("allSeats"+eventId, List.class);
-        if(seats!=null)return seats;
-        seats = seatStatusRepository.findByeventId(eventId);
-        redisService.setSeats("allSeats"+eventId,seats,10);
-        return seats;
+        try {
+            String key = "allSeats"+eventId;
+            List<SeatStatus> seats = redisService.getSeats(key, List.class);
+            if(seats!=null)return seats;
+            seats = seatStatusRepository.findByeventId(eventId);
+            redisService.setSeats(key,seats,10);
+            return seats;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
     }
 }

@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "SeatStatus")
+
 public class SeatStatus {
     @Id
     @JsonSerialize(using = ObjectIdSerializer.class)
