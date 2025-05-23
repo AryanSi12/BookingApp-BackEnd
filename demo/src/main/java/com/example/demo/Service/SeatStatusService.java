@@ -7,6 +7,7 @@ import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -31,16 +32,22 @@ public class SeatStatusService {
 
     public List<SeatStatus> getSeatStatusByEventId(ObjectId eventId) {
         try {
-            String key = "allSeats"+eventId;
+            String key = "allSeats" + eventId;
             List<SeatStatus> seats = redisService.getSeats(key, new TypeReference<List<SeatStatus>>() {});
-            if(seats!=null)return seats;
-            seats = seatStatusRepository.findByeventId(eventId);
-            redisService.setSeats(key,seats,10);
+            if (seats == null) {
+                seats = seatStatusRepository.findByeventId(eventId);
+                redisService.setSeats(key, seats, 10);
+            }
+
+            // Sort by seatNumber (e.g., A1, A2, B1, etc.)
+            seats.sort(Comparator.comparing(SeatStatus::getSeatNumber));
+
             return seats;
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-
     }
+
+}
 }
