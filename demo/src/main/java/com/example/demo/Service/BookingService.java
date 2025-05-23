@@ -136,7 +136,7 @@ public class BookingService {
             }
 // Save updated seatStatuses directly
             seatStatusRepository.saveAll(seatStatuses);
-
+            redisService.setSeats("allSeats"+eventId,seatStatuses,10);
 
             booking.setBookingStatus(Bookingstatus.SUCCESSFULL);
             booking.setUserId(user);
