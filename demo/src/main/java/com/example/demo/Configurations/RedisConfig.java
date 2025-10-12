@@ -18,7 +18,7 @@ public class RedisConfig {
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName("ethical-gorilla-13755.upstash.io");
+        config.setHostName("endless-anemone-13627.upstash.io");
         config.setPort(6379);
         config.setPassword(RedisPassword.of("ATW7AAIjcDE3Y2E3NzhkNzc5Mjg0NGE5OGYzMTAxYzYyMTc0YmQxZXAxMA"));
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
