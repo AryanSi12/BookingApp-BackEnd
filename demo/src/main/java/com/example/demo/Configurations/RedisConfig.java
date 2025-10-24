@@ -20,7 +20,7 @@ public class RedisConfig {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName("endless-anemone-13627.upstash.io");
         config.setPort(6379);
-        config.setPassword(RedisPassword.of("ATW7AAIjcDE3Y2E3NzhkNzc5Mjg0NGE5OGYzMTAxYzYyMTc0YmQxZXAxMA"));
+        config.setPassword(RedisPassword.of("ATU7AAIncDIzNjhmYjM3ZmU1NWE0NjI4YmUwZGUyZDdiZWE5ODA2Y3AyMTM2Mjc"));
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .useSsl() // Important for Upstash
                 .build();
