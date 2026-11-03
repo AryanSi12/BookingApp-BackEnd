@@ -13,7 +13,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                         "http://localhost:5173",
                         "http://127.0.0.1:5173",
-                        "https://booking-app-frontend-kappa.vercel.app"
+                        "https://booking-app-frontend-kappa.vercel.app",
+                        "https://booking-app-frontend-git-cursor-92ba6e-aryans-projects-bbec6789.vercel.app"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
