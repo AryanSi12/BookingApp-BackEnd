@@ -2,6 +2,7 @@ package com.example.demo.Configurations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -15,20 +16,41 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class RedisConfig {
+
+    @Value("${spring.data.redis.host}")
+    private String redisHost;
+
+    @Value("${spring.data.redis.port}")
+    private int redisPort;
+
+    @Value("${spring.data.redis.username:default}")
+    private String redisUsername;
+
+    @Value("${spring.data.redis.password}")
+    private String redisPassword;
+
+    @Value("${spring.data.redis.ssl.enabled:true}")
+    private boolean redisSslEnabled;
+
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName("endless-anemone-13627.upstash.io");
-        config.setPort(6379);
-        config.setPassword(RedisPassword.of("ATU7AAIncDIzNjhmYjM3ZmU1NWE0NjI4YmUwZGUyZDdiZWE5ODA2Y3AyMTM2Mjc"));
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                .useSsl() // Important for Upstash
-                .build();
-        return new LettuceConnectionFactory(config, clientConfig);
+        config.setHostName(redisHost);
+        config.setPort(redisPort);
+        config.setUsername(redisUsername);
+        config.setPassword(RedisPassword.of(redisPassword));
+
+        LettuceClientConfiguration.LettuceClientConfigurationBuilder clientConfigBuilder =
+                LettuceClientConfiguration.builder();
+        if (redisSslEnabled) {
+            clientConfigBuilder.useSsl();
+        }
+
+        return new LettuceConnectionFactory(config, clientConfigBuilder.build());
     }
 
     @Bean
-    public RedisTemplate redisTemplate(RedisConnectionFactory redisConnectionFactory){
+    public RedisTemplate redisTemplate(RedisConnectionFactory redisConnectionFactory) {
         RedisTemplate template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
