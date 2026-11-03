@@ -22,13 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 @Service
 public class BookingService {
@@ -70,98 +69,137 @@ public class BookingService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userService.getCurrUser(username);
-        List<String> bookedSeats = new ArrayList<>();
-        //set booking status as pending
         booking.setBookingStatus(Bookingstatus.PENDING);
 
-        List<String> seatNumbers = booking.getBookedSeats();
-        if (seatNumbers == null || seatNumbers.isEmpty()) {
+        List<String> requested = booking.getBookedSeats();
+        if (requested == null || requested.isEmpty()) {
             return new ResponseEntity<>("No seats selected for booking", HttpStatus.BAD_REQUEST);
         }
 
         System.out.println(booking);
-        for (String seatNumber : seatNumbers) {
-            SeatStatus status = seatStatuses.stream()
-                    .filter(ss -> ss.getSeatNumber().equalsIgnoreCase(seatNumber))
-                    .findFirst()
-                    .orElse(null);
-
+        List<String> seatNumbers = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (String seatNumber : requested) {
+            SeatStatus status = catalogStatus(seatStatuses, seatNumber);
             if (status == null || status.getStatus() == Status.BOOKED) {
                 return new ResponseEntity<>("Seat " + seatNumber + " is already booked", HttpStatus.BAD_REQUEST);
             }
+            if (seen.add(status.getSeatNumber().toUpperCase(Locale.ROOT))) {
+                seatNumbers.add(status.getSeatNumber());
+            }
         }
+        booking.setBookedSeats(seatNumbers);
 
-        long amt = 0;
-        //fetch details of the seats and lock them
-        for (String seatNumber : seatNumbers){
-            //System.out.println(seatNumber);
-            Boolean isLocked = redisService.lockSeat(event.getEventId(),seatNumber,user.getUserId(),5);
-            //fetch seat details
+        if (venue == null || venue.getSeats() == null) {
+            return new ResponseEntity<>("Failed to book the tickets", HttpStatus.BAD_REQUEST);
+        }
+        List<Seat> priced = new ArrayList<>();
+        for (String seatNumber : seatNumbers) {
             Seat seat = venue.getSeats().stream()
-                    .filter(seat1 -> seat1.getSeatNumber().equalsIgnoreCase(seatNumber))
+                    .filter(candidate -> candidate != null
+                            && candidate.getSeatNumber() != null
+                            && candidate.getSeatNumber().equalsIgnoreCase(seatNumber))
                     .findFirst()
                     .orElse(null);
-
-            if(seat.getSeatType() == SeatType.VIP)amt=amt+10000;
-            else amt=amt+5000;
-            bookedSeats.add(seatNumber);
-            //unlock all the seats that were previously locked
-            if(Boolean.FALSE.equals(isLocked)){
-                for (String seatNo : bookedSeats) {
-                    redisService.unlockSeat(event.getEventId(), seatNo);
-                }
+            if (seat == null) {
                 return new ResponseEntity<>("Failed to book the tickets", HttpStatus.BAD_REQUEST);
             }
-            messagingTemplate.convertAndSend("/topic/seats/" + eventId, "Seat " + seatNumber + " has been locked for booking.");
+            priced.add(seat);
         }
 
-
-        //Payment gateway using Stripe
+        List<RedisService.SeatHold> holds = new ArrayList<>();
+        boolean keepLocks = false;
         try {
-            Stripe.apiKey = stripeApiKey;
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(amt)
-                    .setCurrency("inr")
-                    .putMetadata("eventId", eventId.toHexString())
-                    .putMetadata("userId", user.getUserId().toHexString())
-                    .build();
-            PaymentIntent paymentIntent = PaymentIntent.create(params);
-            //setting seat status to booked
-            List<SeatStatus> updatedStatuses = new ArrayList<>();
-
-            for (SeatStatus status : seatStatuses) {
-                if (seatNumbers.contains(status.getSeatNumber())) {
-                    status.setStatus(Status.BOOKED);
+            long amt = 0;
+            for (int i = 0; i < seatNumbers.size(); i++) {
+                String seatNumber = seatNumbers.get(i);
+                Seat seat = priced.get(i);
+                RedisService.SeatHold hold = redisService.lockSeat(event.getEventId(), seatNumber, user.getUserId(), 5);
+                if (hold == null) {
+                    return new ResponseEntity<>("Failed to book the tickets", HttpStatus.BAD_REQUEST);
                 }
+                holds.add(hold);
+                if (seat.getSeatType() == SeatType.VIP) {
+                    amt = amt + 10000;
+                } else {
+                    amt = amt + 5000;
+                }
+                messagingTemplate.convertAndSend("/topic/seats/" + eventId, "Seat " + hold.seatNumber() + " has been locked for booking.");
             }
-// Save updated seatStatuses directly
-            seatStatusRepository.saveAll(seatStatuses);
-            redisService.setSeats("allSeats"+eventId,seatStatuses,10);
 
-            booking.setBookingStatus(Bookingstatus.SUCCESSFULL);
-            booking.setUserId(user);
-            booking.setCreatedAt(LocalDateTime.now());
-            booking.setAmountPaid(amt/100);
-            booking.setEventId(event);
-            Booking Booked = saveBooking(booking);
-
-            messagingTemplate.convertAndSend("/topic/seats/" + eventId, "Booking successful. Seats: " + bookedSeats);
-
-            return ResponseEntity.ok(java.util.Map.of(
-                    "clientSecret", paymentIntent.getClientSecret(),
-                    "amount", amt,
-                    "seatsLocked", bookedSeats,
-                    "bookingDetails" , booking
-            ));
-        } catch (StripeException e) {
-            // Unlock all the seats if Stripe fails
-            for (String seatNo : bookedSeats) {
-                redisService.unlockSeat(event.getEventId(), seatNo);
+            List<String> bookedSeats = new ArrayList<>();
+            for (RedisService.SeatHold hold : holds) {
+                bookedSeats.add(hold.seatNumber());
             }
-            // Notify all clients that the payment creation failed
-            messagingTemplate.convertAndSend("/topic/seats/" + eventId, "Payment creation failed. Please try again.");
 
-            return new ResponseEntity<>("Payment creation failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            try {
+                Stripe.apiKey = stripeApiKey;
+                PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                        .setAmount(amt)
+                        .setCurrency("inr")
+                        .putMetadata("eventId", eventId.toHexString())
+                        .putMetadata("userId", user.getUserId().toHexString())
+                        .build();
+                PaymentIntent paymentIntent = PaymentIntent.create(params);
+
+                for (SeatStatus status : seatStatuses) {
+                    if (seatNumbers.contains(status.getSeatNumber())) {
+                        status.setStatus(Status.BOOKED);
+                    }
+                }
+                seatStatusRepository.saveAll(seatStatuses);
+                redisService.setSeats("allSeats" + eventId, seatStatuses, 10);
+
+                booking.setBookingStatus(Bookingstatus.SUCCESSFULL);
+                booking.setUserId(user);
+                booking.setCreatedAt(LocalDateTime.now());
+                booking.setAmountPaid(amt / 100);
+                booking.setEventId(event);
+                saveBooking(booking);
+
+                messagingTemplate.convertAndSend("/topic/seats/" + eventId, "Booking successful. Seats: " + bookedSeats);
+                keepLocks = true;
+                return ResponseEntity.ok(java.util.Map.of(
+                        "clientSecret", paymentIntent.getClientSecret(),
+                        "amount", amt,
+                        "seatsLocked", bookedSeats,
+                        "bookingDetails", booking
+                ));
+            } catch (StripeException e) {
+                messagingTemplate.convertAndSend("/topic/seats/" + eventId, "Payment creation failed. Please try again.");
+                return new ResponseEntity<>("Payment creation failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } finally {
+            if (!keepLocks) {
+                releaseHolds(holds);
+            }
+        }
+    }
+
+    private SeatStatus catalogStatus(List<SeatStatus> seatStatuses, String seatNumber) {
+        if (seatNumber == null || seatStatuses == null) {
+            return null;
+        }
+        for (SeatStatus status : seatStatuses) {
+            if (seatNumber.equals(status.getSeatNumber())) {
+                return status;
+            }
+        }
+        for (SeatStatus status : seatStatuses) {
+            if (status.getSeatNumber() != null && status.getSeatNumber().equalsIgnoreCase(seatNumber)) {
+                return status;
+            }
+        }
+        return null;
+    }
+
+    private void releaseHolds(List<RedisService.SeatHold> holds) {
+        for (RedisService.SeatHold hold : holds) {
+            try {
+                hold.release();
+            } catch (RuntimeException ex) {
+                // A Redis error here must not replace the booking response. The lock TTL still expires.
+            }
         }
     }
 
