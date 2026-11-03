@@ -1,0 +1,36 @@
+---
+description: Upstash Redis client settings for the booking API
+globs: demo/**/{RedisConfig.java,application.properties,pom.xml}
+alwaysApply: false
+---
+
+# Redis connection
+
+`RedisConfig` reads `spring.data.redis.host`, `port`, `username`, `password`, and `ssl.enabled`. Keys under `spring.redis.*` are ignored.
+
+The Upstash instance uses username `default`, port `6379`, and SSL on. Keep the password in `application.properties`. Do not hardcode the host or password in `RedisConfig`.
+
+Do not set a `<version>` on `spring-boot-starter-data-redis`. Boot 3.3.11 supplies it. Version `2.7.18` breaks startup. Leave Jedis unused. The factory is Lettuce.
+
+The dev API on port `8095` must not use the verify harness Redis on port `6380`.
+
+```properties
+# BAD — RedisConfig never reads this prefix
+spring.redis.host=fancy-lamb-246550.upstash.io
+spring.redis.ssl.enabled=true
+
+# GOOD
+spring.data.redis.host=fancy-lamb-246550.upstash.io
+spring.data.redis.port=6379
+spring.data.redis.username=default
+spring.data.redis.ssl.enabled=true
+```
+
+```xml
+<!-- BAD -->
+<artifactId>spring-boot-starter-data-redis</artifactId>
+<version>2.7.18</version>
+
+<!-- GOOD -->
+<artifactId>spring-boot-starter-data-redis</artifactId>
+```

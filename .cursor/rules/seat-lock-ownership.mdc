@@ -1,0 +1,27 @@
+---
+description: A booking seat lock can be released only by the hold that acquired it
+globs: demo/**/{BookingService.java,RedisService.java}
+alwaysApply: false
+---
+
+# Seat lock ownership
+
+`RedisService.lockSeat` returns a `SeatHold` when this user acquires the key or already holds it. It returns null when another user holds the key. `SeatHold.release` is the only delete. It removes the key only when the stored value is this user.
+
+Do not add `unlockSeat` back. An unconditional `delete` lets a lost race remove the winner's lock.
+
+In `BookingService.bookSeat`, add a hold to the release list only after `lockSeat` returns it. On failure, release those holds. On success, leave them until the TTL. A second lock by the same user refreshes the TTL. It must not delete the key.
+
+The Redis key uppercases the seat. Pass the catalog spelling from `SeatStatus`, and fold case duplicates before locking.
+
+```java
+// BAD — deletes whoever owns the key, including a seat this attempt never locked
+redisTemplate.delete("seat-lock:" + eventId + ":" + seatNumber);
+
+// GOOD
+RedisService.SeatHold hold = redisService.lockSeat(eventId, seatNumber, userId, 5);
+if (hold == null) {
+    return failed;
+}
+holds.add(hold);
+```

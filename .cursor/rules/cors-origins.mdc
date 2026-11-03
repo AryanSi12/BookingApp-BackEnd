@@ -1,0 +1,30 @@
+---
+description: Keep booking API CORS origins identical in security and MVC config
+globs: demo/**/{SecurityConfig.java,WebConfig.java}
+alwaysApply: false
+---
+
+# CORS origins
+
+Edit the origin list in both of these places in the same change:
+
+- `SecurityConfig.corsConfigurationSource`
+- `WebConfig.addCorsMappings`
+
+`SecurityConfig` must keep `.cors(Customizer.withDefaults())` and `OPTIONS /**` as `permitAll`. `WebConfig` alone does not cover secured routes.
+
+Both lists use exact origins and `allowCredentials(true)`. Do not switch either list to `*`. `http://localhost:5173` and `http://127.0.0.1:5173` are different origins. Keep both.
+
+```java
+// BAD — updated in only one class, so the browser and Spring Security disagree
+// WebConfig only
+.allowedOrigins("https://new-preview.vercel.app")
+
+// GOOD — same origin added in SecurityConfig and WebConfig
+"http://localhost:5173",
+"http://127.0.0.1:5173",
+"https://booking-app-frontend-kappa.vercel.app",
+"https://new-preview.vercel.app"
+```
+
+A `401` on `POST /Public/LoginUser` from a bad `jwtToken` cookie is `JwtFilter`, not a missing CORS origin.
