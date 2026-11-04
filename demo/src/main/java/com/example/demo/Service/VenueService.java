@@ -19,6 +19,9 @@ public class VenueService {
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private CatalogReadService catalogReadService;
     public Venues createVenue(Venues venue) {
         try {
             Venues savedVenue = venueRepository.save(venue);  // Save the venue
@@ -34,7 +37,7 @@ public class VenueService {
     public List<Venues> getAllVenues() {
         List<Venues> venues = redisService.getVenues("allVenues",List.class);
         if(venues != null)return venues;
-        venues = venueRepository.findAll();
+        venues = catalogReadService.venueList();
         redisService.setVenues("allVenues",venues,10);
         return venues;
     }

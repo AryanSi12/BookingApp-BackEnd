@@ -2,6 +2,7 @@ package com.example.demo.Models;
 
 import com.example.demo.Configurations.ObjectIdSerializer;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
@@ -39,9 +40,11 @@ public class Venues {
     private String venueImage;
 
     @JsonManagedReference
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Seat> seats;
 
     @DBRef
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private User createdBy;
 
     @CreatedDate
