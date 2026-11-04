@@ -83,7 +83,7 @@ public class CatalogReadService {
 
     private Map<ObjectId, Venues> venuesById(Collection<ObjectId> ids, boolean excludeOwner) {
         if (ids.isEmpty()) {
-            return Map.of();
+            return new HashMap<>();
         }
         Query query = Query.query(Criteria.where("_id").in(ids));
         query.fields().exclude("seats");
@@ -99,7 +99,7 @@ public class CatalogReadService {
 
     private Map<ObjectId, User> usersById(Collection<ObjectId> ids) {
         if (ids.isEmpty()) {
-            return Map.of();
+            return new HashMap<>();
         }
         Query query = Query.query(Criteria.where("_id").in(ids));
         query.fields().exclude("password");
