@@ -221,6 +221,9 @@ class SeatLockOwnershipTest {
         request.setBookedSeats(List.of("a1", "A1"));
         List<SeatStatus> statuses = List.of(available("A1"), available("B1"));
 
+        template.opsForValue().set("seatMap:" + eventId, "stale-map");
+        template.opsForValue().set("allSeats" + eventId, "stale-seats");
+
         ResponseEntity<?> response = withIntent(() -> booking.bookSeat(request, eventId, statuses));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -230,6 +233,8 @@ class SeatLockOwnershipTest {
         assertEquals(10000L, body.get("amount"));
         assertEquals("cs_test", body.get("clientSecret"));
         assertEquals(aliceId.toHexString(), template.opsForValue().get(lockKey(eventId, "A1")));
+        assertNull(template.opsForValue().get("seatMap:" + eventId));
+        assertNull(template.opsForValue().get("allSeats" + eventId));
         assertEquals(Status.BOOKED, statuses.get(0).getStatus());
         assertEquals(Status.AVAILABLE, statuses.get(1).getStatus());
         assertNull(template.opsForValue().get("seat-lock:" + eventId + ":a1"));

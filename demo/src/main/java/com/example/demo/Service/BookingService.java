@@ -148,7 +148,8 @@ public class BookingService {
                     }
                 }
                 seatStatusRepository.saveAll(seatStatuses);
-                redisService.setSeats("allSeats" + eventId, seatStatuses, 10);
+                redisService.deleteKey(SeatStatusService.seatMapKey(eventId));
+                redisService.deleteKey("allSeats" + eventId);
 
                 booking.setBookingStatus(Bookingstatus.SUCCESSFULL);
                 booking.setUserId(user);

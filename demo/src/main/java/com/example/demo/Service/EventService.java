@@ -20,6 +20,12 @@ public class EventService {
 
     @Autowired
     private EventsRepository eventsRepository;
+
+    @Autowired
+    private CatalogReadService catalogReadService;
+
+    @Autowired
+    private SeatStatusService seatStatusService;
     public Event saveEvent(Event event) {
         eventsRepository.save(event);
         redisService.deleteKey("allEvents");
@@ -35,13 +41,15 @@ public class EventService {
         List<Event> events = redisService.getEvents("allEvents", List.class);
         if (events != null) return events;
 
-        events = eventsRepository.findAll();
+        events = catalogReadService.eventList();
         redisService.setEvents("allEvents", events, 10);
         return events;
     }
 
     public void deleteById(ObjectId eventId) {
         eventsRepository.deleteById(eventId);
+        redisService.deleteKey(SeatStatusService.seatMapKey(eventId));
+        redisService.deleteKey("allEvents");
     }
 
     public List<Event> getEventByQuery(String query) {
@@ -63,6 +71,11 @@ public class EventService {
     }
 
     public void deleteByVenueId(ObjectId venueId) {
+        List<Event> events = eventsRepository.findByvenueId(venueId);
+        for (Event event : events) {
+            seatStatusService.evictSeatMap(event.getEventId());
+        }
         eventsRepository.deleteByvenueId(venueId);
+        redisService.deleteKey("allEvents");
     }
 }

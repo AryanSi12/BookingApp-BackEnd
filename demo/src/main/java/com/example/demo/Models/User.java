@@ -2,6 +2,7 @@ package com.example.demo.Models;
 
 import com.example.demo.Configurations.ObjectIdSerializer;
 import com.example.demo.Enums.Roles;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,6 +34,7 @@ public class User {
 
     private String userImage;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String password;
 
     private List<Roles> roles;
